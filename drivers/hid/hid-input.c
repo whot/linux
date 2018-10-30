@@ -1855,7 +1855,7 @@ EXPORT_SYMBOL_GPL(hidinput_disconnect);
 void hid_scroll_counter_handle_scroll(struct hid_scroll_counter *counter,
 				      int hi_res_value)
 {
-	int low_res_value, remainder, multiplier;
+	int low_res_value, remainder, multiplier, direction;
 
 	input_report_rel(counter->dev, REL_WHEEL_HI_RES,
 			 hi_res_value * counter->microns_per_hi_res_unit);
@@ -1865,20 +1865,31 @@ void hid_scroll_counter_handle_scroll(struct hid_scroll_counter *counter,
 	 * but reset if the direction has changed.
 	 */
 	remainder = counter->remainder;
-	if ((remainder ^ hi_res_value) < 0)
+	direction = hi_res_value > 0 ? 1 : -1;
+	if (direction != counter->direction)
 		remainder = 0;
+	counter->direction = direction;
 	remainder += hi_res_value;
 
 	/*
 	 * Then just use the resolution multiplier to see if
 	 * we should send a low-res (aka regular wheel) event.
+	 * Threshold is at the mid-point because we'll slide a few events
+	 * back/forth when the mouse gives us more or less than multiplier
+	 * events for a single notch movement.
 	 */
 	multiplier = counter->resolution_multiplier;
-	low_res_value = remainder / multiplier;
-	remainder -= low_res_value * multiplier;
-	counter->remainder = remainder;
-
-	if (low_res_value)
+	if (abs(remainder) >= multiplier/2) {
+		low_res_value = remainder / multiplier;
+                /* Move at minimum 1/-1 because we want to trigger when the wheel
+                 * is half-way to the next notch (i.e. scroll 1 notch after a
+                 * 1/2 notch movement.
+                 */
+		if (low_res_value == 0)
+			low_res_value = (hi_res_value > 0 ? 1 : -1);
+		remainder -= low_res_value * multiplier;
 		input_report_rel(counter->dev, REL_WHEEL, low_res_value);
+	}
+	counter->remainder = remainder;
 }
 EXPORT_SYMBOL_GPL(hid_scroll_counter_handle_scroll);

@@ -1162,6 +1162,7 @@ struct hid_scroll_counter {
 	int resolution_multiplier;
 
 	int remainder;
+	int direction;
 };
 
 void hid_scroll_counter_handle_scroll(struct hid_scroll_counter *counter,
