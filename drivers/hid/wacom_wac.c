@@ -1346,6 +1346,7 @@ static void wacom_intuos_pro2_bt_touch(struct wacom_wac *wacom)
 		}
 
 		input_mt_sync_frame(touch_input);
+		input_sync(touch_input);
 
 		wacom->num_contacts_left -= contacts_to_send;
 		if (wacom->num_contacts_left <= 0) {
