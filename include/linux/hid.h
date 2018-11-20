@@ -448,6 +448,7 @@ struct hid_usage {
 	__s8	  hat_min;		/* hat switch fun */
 	__s8	  hat_max;		/* ditto */
 	__s8	  hat_dir;		/* ditto */
+	__s8	  wheel_factor;		/* 120/resolution_multiplier */
 };
 
 struct hid_input;
