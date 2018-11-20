@@ -725,6 +725,7 @@ static void hidinput_configure_usage(struct hid_input *hidinput, struct hid_fiel
 				hidinput_set_wheel_factor(usage);
 				set_bit(REL_WHEEL, input->relbit);
 				map_rel(REL_WHEEL_HI_RES);
+				printk("... enabling hires\n");
 			} else {
 				map_abs(usage->hid & 0xf);
 			}
@@ -1561,10 +1562,13 @@ static void hidinput_change_resolution_multipliers(struct hid_device *hid)
 
 				*rep->field[i]->value = logical_max;
 				update_needed = true;
+
 			}
 		}
-		if (update_needed)
+		if (update_needed) {
 			hid_hw_request(hid, rep, HID_REQ_SET_REPORT);
+			printk(".. hw request sent\n");
+		}
 	}
 
 	/* refresh our structs */
