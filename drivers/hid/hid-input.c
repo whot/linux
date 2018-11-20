@@ -1029,7 +1029,11 @@ static void hidinput_configure_usage(struct hid_input *hidinput, struct hid_fiel
 		case 0x22f: map_key_clear(KEY_ZOOMRESET);	break;
 		case 0x233: map_key_clear(KEY_SCROLLUP);	break;
 		case 0x234: map_key_clear(KEY_SCROLLDOWN);	break;
-		case 0x238: map_rel(REL_HWHEEL);		break;
+		case 0x238: /* AC Pan */
+			hidinput_set_wheel_factor(usage);
+			set_bit(REL_HWHEEL, input->relbit);
+			map_rel(REL_HWHEEL_HI_RES);
+			break;
 		case 0x23d: map_key_clear(KEY_EDIT);		break;
 		case 0x25f: map_key_clear(KEY_CANCEL);		break;
 		case 0x269: map_key_clear(KEY_INSERT);		break;
@@ -1046,7 +1050,6 @@ static void hidinput_configure_usage(struct hid_input *hidinput, struct hid_fiel
 		case 0x2ca: map_key_clear(KEY_KBDINPUTASSIST_NEXTGROUP);		break;
 		case 0x2cb: map_key_clear(KEY_KBDINPUTASSIST_ACCEPT);	break;
 		case 0x2cc: map_key_clear(KEY_KBDINPUTASSIST_CANCEL);	break;
-
 		default: map_key_clear(KEY_UNKNOWN);
 		}
 		break;
@@ -1279,10 +1282,13 @@ void hidinput_hid_event(struct hid_device *hid, struct hid_field *field, struct 
 	if ((usage->type == EV_KEY) && (usage->code == 0)) /* Key 0 is "unassigned", not KEY_UNKNOWN */
 		return;
 
-	if ((usage->type == EV_REL) && (usage->code == REL_WHEEL_HI_RES)) {
+	if ((usage->type == EV_REL) &&
+	    ((usage->code == REL_WHEEL_HI_RES) || usage->code == REL_HWHEEL_HI_RES)) {
 		int hi_res = usage->wheel_factor * value;
-		input_event(input, EV_REL, REL_WHEEL, value); /* FIXME */
-		input_event(input, EV_REL, REL_WHEEL_HI_RES, hi_res);
+		int lo_res_code = usage->code == REL_WHEEL_HI_RES ?
+					REL_WHEEL : REL_HWHEEL;
+		input_event(input, EV_REL, lo_res_code, value); /* FIXME */
+		input_event(input, EV_REL, usage->code, hi_res);
 		return;
 	}
 
@@ -1571,7 +1577,8 @@ static void hidinput_change_resolution_multipliers(struct hid_device *hid)
 			for (j = 0; j < rep->field[i]->maxusage; j++) {
 				usage = &rep->field[i]->usage[j];
 
-				if (usage->hid == HID_GD_WHEEL)
+				if (usage->hid == HID_GD_WHEEL ||
+				    usage->hid == HID_CP_AC_PAN)
 					hidinput_set_wheel_factor(usage);
 			}
 		}
